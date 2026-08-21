@@ -7,7 +7,8 @@ world.
 
 Two terminal panes, two players, one Minecraft world. The full clip, with the
 game's own sound, is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4).
-Every frame in both is bytes terminal-browser wrote to a terminal.
+It runs at two and a half times speed so it fits in a breath. Every frame in it
+is bytes terminal-browser wrote to a terminal.
 
 And an agent can play it, through the same keyboard and mouse you would use:
 

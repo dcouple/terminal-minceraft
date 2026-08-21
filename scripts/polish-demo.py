@@ -18,7 +18,8 @@ built without freetype and so has no drawtext:
         --left  media/raw/steve.mp4 --left-title steve \\
         --right media/raw/alex.mp4  --right-title alex \\
         --audio media/raw/audio.webm --audio-offset 39.9 \\
-        --stack --cut 43:58 --cut 134:256 --out media/terminal-minceraft.mp4
+        --stack --speed 2.5 --cut 47:53 --cut 161:173 --cut 219:247 \\
+        --out media/terminal-minceraft.mp4
 
 This file is terminal-doom's polish-demo.py with a second window added.
 """
@@ -191,7 +192,16 @@ def main():
                          "is the shape social video wants. Without it the two "
                          "sit side by side in a wide one")
     ap.add_argument("--fps", type=int, default=24)
+    ap.add_argument("--speed", type=float, default=1.0,
+                    help="play the captures faster than they were recorded. The "
+                         "frames are still every frame, they just go by quicker, "
+                         "and the sound keeps its pitch. Caption times are in "
+                         "the finished clip's clock, so they are unaffected")
     ap.add_argument("--audio")
+    ap.add_argument("--audio-gain", type=float, default=0.0,
+                    help="decibels to lift the game's sound by. Minecraft is "
+                         "mostly quiet, so a short cut of it can come out far "
+                         "below anything else you would play next to it")
     ap.add_argument("--audio-offset", type=float, default=0.0,
                     help="seconds into the capture where the audio recording begins")
     ap.add_argument("--caption", action="append", default=[], metavar="START:END:LABEL",
@@ -232,6 +242,7 @@ def main():
         inputs += ["-i", args.audio]
 
     fps = args.fps
+    speed = max(0.1, args.speed)
 
     def cut_stream(index, offset, label):
         """The kept ranges of one capture, joined end to end.
@@ -240,7 +251,7 @@ def main():
         sound are cut on the same clock, which is the capture's own.
         """
         if not cuts:
-            return [f"[{index}:v]setpts=PTS-STARTPTS[{label}]"]
+            return [f"[{index}:v]setpts=(PTS-STARTPTS)/{speed:.6f}[{label}]"]
         # A stream feeds one filter, so it has to be split before it can be cut
         # in more than one place.
         parts = [f"[{index}:v]split={len(cuts)}" +
@@ -251,7 +262,10 @@ def main():
                 f"setpts=PTS-STARTPTS[{label}{n}]"
             )
         joined = "".join(f"[{label}{n}]" for n in range(len(cuts)))
-        parts.append(f"{joined}concat=n={len(cuts)}:v=1:a=0[{label}]")
+        tail = f"[{label}]" if speed == 1 else f"[{label}raw]"
+        parts.append(f"{joined}concat=n={len(cuts)}:v=1:a=0{tail}")
+        if speed != 1:
+            parts.append(f"[{label}raw]setpts=PTS/{speed:.6f}[{label}]")
         return parts
 
     graph = [f"[0:v]scale={CANVAS[0]}:{CANVAS[1]}:flags=lanczos,fps={fps},setsar=1[bg]"]
@@ -307,7 +321,32 @@ def main():
                 graph.append(
                     f"[as{n}]atrim=start={a:.3f}:end={b:.3f},asetpts=PTS-STARTPTS[ac{n}]")
             joined = "".join(f"[ac{n}]" for n in range(len(cuts)))
-            graph.append(f"{joined}concat=n={len(cuts)}:v=0:a=1[aud]")
+            graph.append(f"{joined}concat=n={len(cuts)}:v=0:a=1"
+                         + ("[aud]" if speed == 1 else "[audraw]"))
+        if speed != 1:
+            # atempo only goes up to 2x in one pass, and it keeps the pitch, so
+            # a fast clip still sounds like Minecraft rather than a chipmunk.
+            steps, left = [], speed
+            while left > 2.0:
+                steps.append(2.0)
+                left /= 2.0
+            steps.append(left)
+            chain = ",".join(f"atempo={v:.6f}" for v in steps)
+            source = "[apad]" if not cuts else "[audraw]"
+            if not cuts:
+                graph = [g for g in graph if not g.startswith("[apad]asetpts")]
+            graph.append(f"{source}{chain}[audfast]")
+        gain_in = "[audfast]" if speed != 1 else None
+        if args.audio_gain:
+            # A limiter after the gain, so lifting the quiet parts cannot clip
+            # the loud ones.
+            src = gain_in or "[aud]"
+            if src == "[aud]":
+                graph = [g.replace("[aud]", "[audflat]") for g in graph]
+                src = "[audflat]"
+            graph.append(f"{src}volume={args.audio_gain:.2f}dB,alimiter=limit=0.95[aud]")
+        elif gain_in:
+            graph.append(f"{gain_in}anull[aud]")
 
     cmd = ["ffmpeg", "-hide_banner", "-loglevel", "warning", "-y", *inputs,
            "-filter_complex", ";".join(graph), "-map", f"[{last}]"]
