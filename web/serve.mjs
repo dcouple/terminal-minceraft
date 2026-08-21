@@ -83,6 +83,12 @@ function enqueue(action, args, timeoutMs) {
     const entry = { id, action, args };
     const timer = setTimeout(() => {
       pending.delete(id);
+      // Take it off the queue as well. A command that was waiting for a page to
+      // start polling is still sitting there after the caller has been told it
+      // failed, and the next page to connect would run it: a move or a mine
+      // from a minute ago, arriving after a reload, changing the world.
+      const at = queued.findIndex((entry) => entry.id === id);
+      if (at >= 0) queued.splice(at, 1);
       resolve({ ok: false, error: `the game did not answer in ${timeoutMs}ms. Is a world loaded?` });
     }, timeoutMs);
     pending.set(id, { resolve, timer });

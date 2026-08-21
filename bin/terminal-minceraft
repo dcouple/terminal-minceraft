@@ -63,6 +63,28 @@ Controls:
 USAGE
 }
 
+# --- a javascript runtime ---------------------------------------------------
+# Node if the machine has one, otherwise the electron that terminal-browser
+# already vendors, which runs as node when asked to. That keeps the only real
+# dependency terminal-browser itself, and it has to be the same answer for the
+# game server and for the agent subcommands: a machine with no node can still
+# play, so it should still be able to let an agent play.
+RUNTIME=()
+resolve_runtime() {
+  if command -v node >/dev/null 2>&1; then
+    RUNTIME=(node)
+    return 0
+  fi
+  ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser.app/Contents/MacOS/terminal-browser"
+  [ -x "$ELECTRON" ] || ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser"
+  if [ -x "$ELECTRON" ]; then
+    RUNTIME=(env ELECTRON_RUN_AS_NODE=1 "$ELECTRON")
+    return 0
+  fi
+  echo "terminal-minceraft: no javascript runtime found (install node, or terminal-browser)" >&2
+  return 1
+}
+
 # --- the agent subcommands --------------------------------------------------
 # terminal-minceraft agent <...> and terminal-minceraft mcp both talk to a game
 # that is already running, so they are handled here and never reach the
@@ -70,13 +92,9 @@ USAGE
 case "${1:-}" in
   agent|mcp)
     SUB="$1"; shift
-    RUNTIME_BIN="$(command -v node || true)"
-    if [ -z "$RUNTIME_BIN" ]; then
-      echo "terminal-minceraft: $SUB needs node" >&2
-      exit 1
-    fi
-    [ "$SUB" = "agent" ] && exec "$RUNTIME_BIN" "$ROOT/scripts/agent-cli.mjs" "$@"
-    exec "$RUNTIME_BIN" "$ROOT/scripts/mcp-server.mjs" "$@"
+    resolve_runtime || exit 1
+    [ "$SUB" = "agent" ] && exec "${RUNTIME[@]}" "$ROOT/scripts/agent-cli.mjs" "$@"
+    exec "${RUNTIME[@]}" "$ROOT/scripts/mcp-server.mjs" "$@"
     ;;
 esac
 
@@ -136,22 +154,7 @@ if [ ! -x "$TB" ] && [ "$SERVE_ONLY" -eq 0 ]; then
   exit 1
 fi
 
-# A javascript runtime for the static server. Node if the machine has one,
-# otherwise the electron terminal-browser already vendors, which runs as node
-# when asked to. That keeps the only real dependency terminal-browser itself.
-RUNTIME=()
-if command -v node >/dev/null 2>&1; then
-  RUNTIME=(node)
-else
-  ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser.app/Contents/MacOS/terminal-browser"
-  [ -x "$ELECTRON" ] || ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser"
-  if [ -x "$ELECTRON" ]; then
-    RUNTIME=(env ELECTRON_RUN_AS_NODE=1 "$ELECTRON")
-  else
-    echo "terminal-minceraft: no javascript runtime found (install node, or terminal-browser)" >&2
-    exit 1
-  fi
-fi
+resolve_runtime || exit 1
 
 # --- serve ------------------------------------------------------------------
 SERVER_PID=""

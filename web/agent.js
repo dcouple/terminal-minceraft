@@ -532,7 +532,13 @@
     look_at: function (a) {
       var M = modapi();
       var p = M.player;
-      var dx = a.x - p.posX, dy = (a.y + 0.5) - (p.posY + 1.62), dz = a.z - p.posZ;
+      // observe reports block positions as the integer corner, so the middle of
+      // the block is half a step along every axis. Aiming at the corner points
+      // the ray down an edge, which from close up picks the neighbour or
+      // misses entirely.
+      var dx = (a.x + 0.5) - p.posX,
+          dy = (a.y + 0.5) - (p.posY + 1.62),
+          dz = (a.z + 0.5) - p.posZ;
       var yaw = Math.atan2(-dx, dz) * 180 / Math.PI;
       var pitch = -Math.atan2(dy, Math.sqrt(dx * dx + dz * dz)) * 180 / Math.PI;
       return lookTo(wrapYaw(yaw), pitch).then(function () {
@@ -589,15 +595,28 @@
     // would take the whole interface with it. Nothing here should run for
     // more than a few seconds beyond what it was asked for.
     var budget = ((cmd.args && cmd.args.seconds) || 0) * 1000 + 20000;
+    var timer = null;
+    var guard = new Promise(function (_, reject) {
+      timer = setTimeout(function () {
+        releaseAll();
+        reject(new Error(cmd.action + " did not finish, keys released"));
+      }, budget);
+    });
+    // Promise.race settles, it does not cancel, so the losing timer keeps
+    // running unless it is cleared. Leaving it set meant every quick observe
+    // armed a releaseAll twenty seconds into the future, which would land in
+    // the middle of whatever the agent was doing by then and let go of the
+    // keys under it.
     return Promise.race([
       Promise.resolve().then(function () { return fn(cmd.args || {}); }),
-      new Promise(function (_, reject) {
-        setTimeout(function () {
-          releaseAll();
-          reject(new Error(cmd.action + " did not finish, keys released"));
-        }, budget);
-      }),
-    ]);
+      guard,
+    ]).then(function (value) {
+      clearTimeout(timer);
+      return value;
+    }, function (err) {
+      clearTimeout(timer);
+      throw err;
+    });
   }
 
   // ---- the control channel ------------------------------------------------

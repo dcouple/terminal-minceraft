@@ -9,7 +9,14 @@ Two terminal panes, two players, one Minecraft world. The full clip, with the
 game's own sound, is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4).
 Every frame in both is bytes terminal-browser wrote to a terminal.
 
-An agent can play it as well. That is [further down](#let-an-agent-play).
+And an agent can play it, through the same keyboard and mouse you would use:
+
+![Claude playing through the MCP server](media/agent-plays.gif)
+
+That is Claude Code, given a hotbar and told to build something. It looks,
+places a block, looks again, and walks back to see what it made. Nobody scripted
+the moves. [How to set that up](#let-an-agent-play) is further down, and it is
+two commands.
 
 ### About the name
 
@@ -125,13 +132,9 @@ whoever joins. The game says that too.
 
 The game runs in a browser, and a browser can be asked questions. With `--agent`
 the wrapper opens a small control layer on the same port, and an agent gets the
-two things a player has: something to see with, and something to act with.
-
-![Claude playing through the MCP server](media/agent-plays.gif)
-
-That clip is Claude Code, given a hotbar and told to build something. It looks,
-places a block, looks again, and walks back to see what it made. The full clip
-is [media/agent-plays.mp4](media/agent-plays.mp4).
+two things a player has: something to see with, and something to act with. The
+full clip from the top of this page is
+[media/agent-plays.mp4](media/agent-plays.mp4).
 
 Start a game with the interface on:
 
