@@ -1,0 +1,38 @@
+The MIT licence in LICENSE covers the code written for this project. It does
+not cover the whole of what ends up on your machine.
+
+terminal-eaglercraft is three things. Only the first of them is in this
+repository. Read this before copying any of it.
+
+1. The wrapper, MIT (see LICENSE)
+   bin/terminal-eaglercraft, install.sh, web/serve.mjs, web/look.js, scripts/*
+   Written for this project. This is everything in this repository.
+
+2. EaglercraftX 1.8, downloaded when you install, under its own terms
+   web/client.html
+   Eaglercraft is a browser port of Minecraft. It is not in this repository, it
+   is not distributed by this project, and no part of it is redistributed here.
+   scripts/fetch-client.sh downloads one file, from a URL pinned to an exact
+   commit, and checks it against a pinned sha256 before using it. That file is
+   an EaglercraftX 1.8 offline client from the Eaglercraft-Archive on GitHub,
+   with EaglerForge's mod loader in it.
+
+   That client contains decompiled Minecraft code. It is not ours, it is not
+   MIT, and it is not ours to relicense or to redistribute. Whether you may
+   have a copy of it is between you, its authors, and Mojang. Repositories
+   hosting Eaglercraft have been taken down under the DMCA before, which is why
+   this project downloads rather than ships, and why --client lets you point it
+   at a copy you already have.
+
+   The archive: https://github.com/Eaglercraft-Archive
+   EaglerForge:  https://github.com/EaglerForge
+
+3. Minecraft, a Mojang product
+   Minecraft is a trademark of Mojang Synergies AB, part of Microsoft. This
+   project is not affiliated with, endorsed by, or sponsored by Mojang or
+   Microsoft, and it is not a way to get Minecraft without paying for it. If
+   you play Minecraft, buy Minecraft.
+
+The recordings in media/ are screen recordings of gameplay. They show Minecraft
+because they are recordings of someone playing it. No game files, code or
+assets are contained in them.

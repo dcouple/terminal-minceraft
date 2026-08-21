@@ -1,0 +1,4 @@
+# The game is downloaded at install time and is never committed.
+web/client.html
+media/raw/
+.venv/
