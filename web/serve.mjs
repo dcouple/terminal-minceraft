@@ -1,4 +1,4 @@
-// A static file server for terminal-eaglercraft.
+// A static file server for terminal-minceraft.
 //
 // The client is one self-contained HTML file downloaded at install time. It is
 // served from loopback rather than opened as file://, because the game asks the
@@ -14,7 +14,7 @@ import { extname, join, normalize, resolve } from "node:path";
 
 const root = resolve(process.argv[2] ?? ".");
 const wanted = Number(process.argv[3] ?? 0);
-const clientPath = process.env.TERMINAL_EAGLERCRAFT_CLIENT || join(root, "client.html");
+const clientPath = process.env.TERMINAL_MINCERAFT_CLIENT || join(root, "client.html");
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -29,7 +29,7 @@ const TYPES = {
 
 // Capture mode drops two files here: the game's own audio, and the moment the
 // recorder started, which is what the capture harness aligns the video against.
-const captureDir = process.env.TERMINAL_EAGLERCRAFT_CAPTURE_DIR;
+const captureDir = process.env.TERMINAL_MINCERAFT_CAPTURE_DIR;
 
 // The injected page is built once and held, because the client is ~20MB and a
 // game reloads more often than you would think.

@@ -18,7 +18,7 @@ built without freetype and so has no drawtext:
         --left  media/raw/steve.mp4 --left-title steve \\
         --right media/raw/alex.mp4  --right-title alex \\
         --audio media/raw/audio.webm --audio-offset 39.9 \\
-        --cut 43:58 --cut 134:256 --out media/terminal-eaglercraft.mp4
+        --stack --cut 43:58 --cut 134:256 --out media/terminal-minceraft.mp4
 
 This file is terminal-doom's polish-demo.py with a second window added.
 """
@@ -30,20 +30,49 @@ import tempfile
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-# Two terminal panes side by side are much wider than they are tall, so the
-# canvas is too. A 16:9 frame would be mostly empty gradient.
-CANVAS = (1920, 760)
-WIN_W, VIDEO_H, BAR_H = 920, 548, 38
-WIN_H = VIDEO_H + BAR_H
-GAP = 48
-LEFT_X = (CANVAS[0] - (WIN_W * 2 + GAP)) // 2
-RIGHT_X = LEFT_X + WIN_W + GAP
-WIN_Y = (CANVAS[1] - WIN_H) // 2
-RADIUS = 14
+# A terminal pane is much wider than it is tall, so two of them do not fit any
+# ordinary frame comfortably. Side by side wants a very wide canvas; one above
+# the other fits a square, which is what Twitter wants. layout() picks one.
+PANE_ASPECT = 1530 / 912
 
-PILL_H, PILL_R, PILL_PAD = 84, 24, 40
-# The caption straddles the bottom edge of the windows, the way a mac hud does.
-PILL_Y = WIN_Y + WIN_H - PILL_H // 2
+CANVAS = (1920, 760)
+WIN_W, VIDEO_H, BAR_H, WIN_H = 920, 548, 38, 586
+GAP = 48
+FIRST = (16, 87)   # top left of the first window
+SECOND = (984, 87)  # top left of the second
+RADIUS = 14
+PILL_H, PILL_R, PILL_PAD, PILL_FONT = 84, 24, 40, 40
+PILL_Y = 631
+
+
+def layout(stack):
+    """Work out where the two windows sit, and how big the canvas has to be."""
+    global CANVAS, WIN_W, VIDEO_H, BAR_H, WIN_H, GAP, FIRST, SECOND
+    global RADIUS, PILL_H, PILL_R, PILL_PAD, PILL_FONT, PILL_Y
+
+    if stack:
+        CANVAS = (1080, 1080)
+        WIN_W, BAR_H, GAP, RADIUS = 780, 30, 26, 12
+        VIDEO_H = round(WIN_W / PANE_ASPECT)
+        WIN_H = VIDEO_H + BAR_H
+        x = (CANVAS[0] - WIN_W) // 2
+        top = (CANVAS[1] - (WIN_H * 2 + GAP)) // 2
+        FIRST = (x, top)
+        SECOND = (x, top + WIN_H + GAP)
+        PILL_H, PILL_R, PILL_PAD, PILL_FONT = 62, 18, 28, 29
+        # Straddling the bottom edge of the lower window, the way a mac hud does.
+        PILL_Y = SECOND[1] + WIN_H - int(PILL_H * 0.72)
+    else:
+        CANVAS = (1920, 760)
+        WIN_W, BAR_H, GAP, RADIUS = 920, 38, 48, 14
+        VIDEO_H = round(WIN_W / PANE_ASPECT)
+        WIN_H = VIDEO_H + BAR_H
+        left = (CANVAS[0] - (WIN_W * 2 + GAP)) // 2
+        top = (CANVAS[1] - WIN_H) // 2
+        FIRST = (left, top)
+        SECOND = (left + WIN_W + GAP, top)
+        PILL_H, PILL_R, PILL_PAD, PILL_FONT = 84, 24, 40, 40
+        PILL_Y = top + WIN_H - PILL_H // 2
 
 TRAFFIC = ["#ff5f57", "#febc2e", "#28c840"]
 FONTS = [
@@ -107,12 +136,13 @@ def titlebar(path, title):
     for n, colour in enumerate(TRAFFIC):
         cx, cy, r = 20 + n * 18, BAR_H / 2, 5.5
         d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=colour)
-    d.text((WIN_W / 2, BAR_H / 2), title, font=font(15), fill="#9aa0a6", anchor="mm")
+    d.text((WIN_W / 2, BAR_H / 2), title, font=font(BAR_H // 2 - 2),
+           fill="#9aa0a6", anchor="mm")
     img.save(path)
 
 
 def pill(path, label):
-    f = font(40)
+    f = font(PILL_FONT)
     tmp = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     width = int(tmp.textlength(label, font=f)) + PILL_PAD * 2
     img = Image.new("RGBA", (width, PILL_H), (0, 0, 0, 0))
@@ -128,14 +158,15 @@ def shadow(path):
     img = Image.new("RGBA", (WIN_W, WIN_H), (0, 0, 0, 0))
     ImageDraw.Draw(img).rounded_rectangle(
         (0, 0, WIN_W - 1, WIN_H - 1), RADIUS, fill=(0, 0, 0, 150))
-    img.filter(ImageFilter.GaussianBlur(22)).save(path)
+    img.filter(ImageFilter.GaussianBlur(18)).save(path)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--left", required=True)
     ap.add_argument("--right", required=True)
-    ap.add_argument("--left-title", default="steve")
+    ap.add_argument("--left-title", default="steve",
+                    help="the top window when stacked, the left one when not")
     ap.add_argument("--right-title", default="alex")
     ap.add_argument("--left-offset", type=float, default=0.0,
                     help="seconds to skip in the left capture, on top of --start")
@@ -144,6 +175,10 @@ def main():
                     help="keep this range of the captures, in the capture's own "
                          "clock. Repeat to keep several, and they are joined in "
                          "the order given. Without any, the whole capture is used")
+    ap.add_argument("--stack", action="store_true",
+                    help="one terminal above the other in a square frame, which "
+                         "is the shape social video wants. Without it the two "
+                         "sit side by side in a wide one")
     ap.add_argument("--fps", type=int, default=24)
     ap.add_argument("--audio")
     ap.add_argument("--audio-offset", type=float, default=0.0,
@@ -152,6 +187,7 @@ def main():
                     help="times are in the finished clip's clock, after cutting")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
+    layout(args.stack)
 
     tmp = tempfile.mkdtemp(prefix="polish-")
     paths = {n: os.path.join(tmp, f"{n}.png")
@@ -220,10 +256,10 @@ def main():
         "[lwin][m1]alphamerge[lwr]",
         "[rwin][m2]alphamerge[rwr]",
         f"[6:v]fps={fps},setsar=1,split=2[sh1][sh2]",
-        f"[bg][sh1]overlay={LEFT_X}:{WIN_Y + 16}:shortest=1[bg1]",
-        f"[bg1][sh2]overlay={RIGHT_X}:{WIN_Y + 16}[bg2]",
-        f"[bg2][lwr]overlay={LEFT_X}:{WIN_Y}[stage1]",
-        f"[stage1][rwr]overlay={RIGHT_X}:{WIN_Y}[stage]",
+        f"[bg][sh1]overlay={FIRST[0]}:{FIRST[1] + 14}:shortest=1[bg1]",
+        f"[bg1][sh2]overlay={SECOND[0]}:{SECOND[1] + 14}[bg2]",
+        f"[bg2][lwr]overlay={FIRST[0]}:{FIRST[1]}[stage1]",
+        f"[stage1][rwr]overlay={SECOND[0]}:{SECOND[1]}[stage]",
     ]
 
     last = "stage"

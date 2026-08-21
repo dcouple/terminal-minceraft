@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+# terminal-minceraft: Minecraft inside your terminal.
+#
+# EaglercraftX 1.8, the browser port of Minecraft 1.8, served over loopback and
+# drawn into the terminal by terminal-browser through the kitty graphics
+# protocol. Singleplayer runs entirely on your machine.
+set -euo pipefail
+
+VERSION="0.1.0"
+
+# --- locate our own install -------------------------------------------------
+# The bin entry is usually a symlink from ~/.local/bin, so follow it before
+# resolving web/ relative to the script.
+SELF="${BASH_SOURCE[0]}"
+while [ -L "$SELF" ]; do
+  LINK="$(readlink "$SELF")"
+  case "$LINK" in
+    /*) SELF="$LINK" ;;
+    *) SELF="$(cd -P "$(dirname "$SELF")" && pwd)/$LINK" ;;
+  esac
+done
+ROOT="$(cd -P "$(dirname "$SELF")/.." && pwd)"
+WEB="$ROOT/web"
+
+usage() {
+  cat <<'USAGE'
+Usage: terminal-minceraft [options]
+
+  terminal-minceraft                 Play in this terminal pane
+  terminal-minceraft --split right   Play in a new pane beside what you are doing
+
+Options:
+  --client <path>       Use your own EaglercraftX offline client html
+  --look <pixels>       Look speed for the arrow keys, in pixels of mouse
+                        movement per second (default 520)
+  --relay <wss url>     Signal shared worlds through this relay instead of the
+                        ones the client ships with
+  --debug               Print what the page is told about the mouse and keys
+  --split <direction>   Open in a new pane: right, left, down, up
+  --size <fraction>     How much space a new split takes (0.2 to 0.95)
+  --port <n>            Serve the game on this port (default 25585). The port
+                        is the origin, and the origin is where your worlds and
+                        settings live, so a second game needs a second port
+  --serve               Only start the server, print its url, and stay in the
+                        foreground (drive it yourself with terminal-browser)
+  --windowed            Keep the browser toolbar, for debugging
+  --version             Print the version
+  -h, --help            Print this help
+
+Controls:
+  WASD move, arrow keys look, space jumps, shift sneaks, left ctrl sprints,
+  e opens the inventory, 1-9 pick a hotbar slot, f5 changes the camera,
+  f3 shows the debug screen, esc for the menu. Quit the pane with ctrl+q.
+
+  Mining and placing are on the mouse. Terminals report the mouse as a grid
+  cell, so a click lands where the crosshair already points: click to mine,
+  right click to place.
+USAGE
+}
+
+CLIENT=""
+LOOK=""
+RELAY=""
+DEBUG=0
+SPLIT=""
+SIZE=""
+PORT="25585"
+SERVE_ONLY=0
+APP_MODE=1
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --client) CLIENT="${2:?--client needs a path}"; shift 2 ;;
+    --client=*) CLIENT="${1#*=}"; shift ;;
+    --look) LOOK="${2:?--look needs a number}"; shift 2 ;;
+    --look=*) LOOK="${1#*=}"; shift ;;
+    --split) SPLIT="${2:?--split needs a direction}"; shift 2 ;;
+    --split=*) SPLIT="${1#*=}"; shift ;;
+    --size) SIZE="${2:?--size needs a fraction}"; shift 2 ;;
+    --size=*) SIZE="${1#*=}"; shift ;;
+    --port) PORT="${2:?--port needs a number}"; shift 2 ;;
+    --port=*) PORT="${1#*=}"; shift ;;
+    --relay) RELAY="${2:?--relay needs a url}"; shift 2 ;;
+    --relay=*) RELAY="${1#*=}"; shift ;;
+    --debug) DEBUG=1; shift ;;
+    --serve) SERVE_ONLY=1; shift ;;
+    --windowed) APP_MODE=0; shift ;;
+    --version) echo "terminal-minceraft $VERSION"; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "terminal-minceraft: unknown option $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+# --- the client -------------------------------------------------------------
+# The game is not in this repository and never will be. install.sh downloads it
+# next to web/, and --client points at your own copy instead.
+[ -n "$CLIENT" ] || CLIENT="${TERMINAL_MINCERAFT_CLIENT:-$WEB/client.html}"
+if [ ! -f "$CLIENT" ]; then
+  echo "terminal-minceraft: no eaglercraft client at $CLIENT" >&2
+  echo "  the client is downloaded at install time, not shipped in this repo" >&2
+  echo "  run: $ROOT/scripts/fetch-client.sh" >&2
+  echo "  or:  terminal-minceraft --client /path/to/your/offline_client.html" >&2
+  exit 1
+fi
+CLIENT="$(cd -P "$(dirname "$CLIENT")" && pwd)/$(basename "$CLIENT")"
+
+TB="$(command -v terminal-browser || true)"
+[ -n "$TB" ] || TB="$HOME/.local/bin/terminal-browser"
+if [ ! -x "$TB" ] && [ "$SERVE_ONLY" -eq 0 ]; then
+  echo "terminal-minceraft: terminal-browser is not installed" >&2
+  echo "  curl -fsSL https://terminal-browser.sh/install | bash" >&2
+  exit 1
+fi
+
+# A javascript runtime for the static server. Node if the machine has one,
+# otherwise the electron terminal-browser already vendors, which runs as node
+# when asked to. That keeps the only real dependency terminal-browser itself.
+RUNTIME=()
+if command -v node >/dev/null 2>&1; then
+  RUNTIME=(node)
+else
+  ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser.app/Contents/MacOS/terminal-browser"
+  [ -x "$ELECTRON" ] || ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser"
+  if [ -x "$ELECTRON" ]; then
+    RUNTIME=(env ELECTRON_RUN_AS_NODE=1 "$ELECTRON")
+  else
+    echo "terminal-minceraft: no javascript runtime found (install node, or terminal-browser)" >&2
+    exit 1
+  fi
+fi
+
+# --- serve ------------------------------------------------------------------
+SERVER_PID=""
+PORT_FILE="$(mktemp)"
+cleanup() {
+  [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null || true
+  rm -f "$PORT_FILE"
+}
+trap cleanup EXIT INT TERM
+
+TERMINAL_MINCERAFT_CLIENT="$CLIENT" \
+  "${RUNTIME[@]}" "$WEB/serve.mjs" "$WEB" "$PORT" >"$PORT_FILE" 2>/dev/null &
+SERVER_PID=$!
+
+# The server prints its port as soon as it is listening.
+BOUND=""
+for _ in $(seq 1 100); do
+  BOUND="$(head -n1 "$PORT_FILE" 2>/dev/null || true)"
+  [ -n "$BOUND" ] && break
+  kill -0 "$SERVER_PID" 2>/dev/null || break
+  sleep 0.05
+done
+if [ -z "$BOUND" ]; then
+  echo "terminal-minceraft: the game server did not start on port $PORT" >&2
+  echo "  if the port is taken, another game is probably already running" >&2
+  echo "  run the second one with --port $((PORT + 1))" >&2
+  exit 1
+fi
+
+URL="http://127.0.0.1:$BOUND/"
+QUERY=""
+[ -n "$LOOK" ] && QUERY="$QUERY&look=$LOOK"
+[ -n "$RELAY" ] && QUERY="$QUERY&relay=$RELAY"
+[ "$DEBUG" -eq 1 ] && QUERY="$QUERY&debug=1"
+# scripts/capture.py sets this. It turns on the page's audio tap, which posts
+# the game's own sound back to the server; a normal run never touches any of it.
+[ -n "${TERMINAL_MINCERAFT_CAPTURE_DIR:-}" ] && QUERY="$QUERY&capture=1"
+[ -n "$QUERY" ] && URL="$URL?${QUERY#&}"
+
+if [ "$SERVE_ONLY" -eq 1 ]; then
+  echo "$URL"
+  wait "$SERVER_PID"
+  exit 0
+fi
+
+# --- play -------------------------------------------------------------------
+ARGS=("open" "$URL")
+if [ "$APP_MODE" -eq 1 ]; then
+  # --app-mode hands every keystroke to the page, which is what a game needs:
+  # no toolbar stealing ctrl+r, no overlays drawn over the viewport.
+  ARGS+=("--app-mode")
+fi
+[ -n "$SPLIT" ] && ARGS+=("--split" "$SPLIT")
+[ -n "$SIZE" ] && ARGS+=("--size" "$SIZE")
+
+"$TB" "${ARGS[@]}"

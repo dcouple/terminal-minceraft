@@ -1,11 +1,11 @@
 The MIT licence in LICENSE covers the code written for this project. It does
 not cover the whole of what ends up on your machine.
 
-terminal-eaglercraft is three things. Only the first of them is in this
+terminal-minceraft is three things. Only the first of them is in this
 repository. Read this before copying any of it.
 
 1. The wrapper, MIT (see LICENSE)
-   bin/terminal-eaglercraft, install.sh, web/serve.mjs, web/look.js, scripts/*
+   bin/terminal-minceraft, install.sh, web/serve.mjs, web/look.js, scripts/*
    Written for this project. This is everything in this repository.
 
 2. EaglercraftX 1.8, downloaded when you install, under its own terms

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Play terminal-eaglercraft inside a pretend terminal and record what it paints.
+"""Play terminal-minceraft inside a pretend terminal and record what it paints.
 
 terminal-browser draws by writing kitty graphics escape sequences to its
 terminal, and reads the player's keys and mouse back off the same pipe. So a
@@ -12,7 +12,7 @@ recorder.
 
     scripts/capture.py --out media --video demo.mp4 --seconds 60 \
         --still 20:title --key 4:space --click 30:0.5:0.79 \
-        --hold 40:2.5:w -- bin/terminal-eaglercraft
+        --hold 40:2.5:w -- bin/terminal-minceraft
 
 Frames arrive as f=32 (RGBA) transfers pointing at a temp file, which is what
 terminal-browser uses on macOS and Linux for speed.
@@ -141,7 +141,7 @@ class FakeTerminal:
             # The page only taps the game's audio when it is told to, and this
             # is the telling. The server writes the sound and its start time
             # into the same directory the frames come out of.
-            self.env["TERMINAL_EAGLERCRAFT_CAPTURE_DIR"] = os.path.abspath(capture_dir)
+            self.env["TERMINAL_MINCERAFT_CAPTURE_DIR"] = os.path.abspath(capture_dir)
         if home:
             # Everything terminal-browser reads a directory out of. The
             # profile is the obvious one, but the daemon socket, the instance

@@ -1,4 +1,4 @@
-// terminal-eaglercraft: the wrapper's half of the game.
+// terminal-minceraft: the wrapper's half of the game.
 //
 // web/serve.mjs injects this into the client's <head>, after the client sets
 // its launch options and before its bundle runs. It is the only place the
@@ -11,7 +11,7 @@
 //   4. turns arrow keys into relative mouse movement, which is what Minecraft
 //      reads for look, so the game is playable from a keyboard alone
 //   5. taps the game's audio, so a recording can have Minecraft in it
-//   6. exposes window.terminalEaglercraft, so the capture harness can ask how
+//   6. exposes window.terminalMinceraft, so the capture harness can ask how
 //      the game is doing instead of reading the screen
 "use strict";
 (function () {
@@ -32,7 +32,7 @@
     opts.checkRelaysForUpdates = false;
   }
   if (params.get("relay")) {
-    opts.relays = [{ addr: params.get("relay"), comment: "terminal-eaglercraft", primary: true }];
+    opts.relays = [{ addr: params.get("relay"), comment: "terminal-minceraft", primary: true }];
   }
 
   // ---- 2. the mod manager -------------------------------------------------
@@ -95,7 +95,7 @@
       fire("pointerlockchange");
     };
   } catch (e) {
-    console.error("[terminal-eaglercraft] pointer lock shim failed", e);
+    console.error("[terminal-minceraft] pointer lock shim failed", e);
   }
 
   // ---- 4. arrow keys as mouse movement ------------------------------------
@@ -135,7 +135,7 @@
       movementX: dx,
       movementY: dy,
     });
-    ev.__terminalEaglercraft = true;
+    ev.__terminalMinceraft = true;
     el.dispatchEvent(ev);
   }
 
@@ -187,7 +187,7 @@
   // only covers a move that arrived without the movement fields filled in.
   var last = null;
   window.addEventListener("mousemove", function (e) {
-    if (e.__terminalEaglercraft) return;
+    if (e.__terminalMinceraft) return;
     if (!locked) { last = null; return; }
     if (!e.movementX && !e.movementY && last) {
       var dx = e.clientX - last.x, dy = e.clientY - last.y;
@@ -287,7 +287,7 @@
   };
 
   var started = Date.now();
-  window.terminalEaglercraft = {
+  window.terminalMinceraft = {
     // Non-zero once the game has painted, which means the bundle ran, chromium
     // gave it a GL context, and the terminal has something to draw.
     frames: function () { return frames; },
@@ -321,7 +321,7 @@
     var lines = { size: "", move: "", button: "", key: "" };
     var draw = function () {
       lines.size = "page " + window.innerWidth + "x" + window.innerHeight +
-        "  locked " + !!locked + "  fps " + window.terminalEaglercraft.fps().toFixed(0) +
+        "  locked " + !!locked + "  fps " + window.terminalMinceraft.fps().toFixed(0) +
         "  audio " + audio.state;
       log.textContent = [lines.size, lines.move, lines.button, lines.key].join("\n");
     };
@@ -331,7 +331,7 @@
       draw();
     });
     window.addEventListener("mousemove", function (e) {
-      if (e.__terminalEaglercraft) return;
+      if (e.__terminalMinceraft) return;
       lines.move = "move  " + e.clientX + "," + e.clientY + "  d " + e.movementX + "," + e.movementY;
     }, true);
     ["mousedown", "mouseup"].forEach(function (t) {

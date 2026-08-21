@@ -10,7 +10,7 @@
 #   scripts/fetch-client.sh --print-sha     print the sha256 it expects
 #
 # If you already have an EaglercraftX 1.8 offline client, you do not need this:
-#   terminal-eaglercraft --client /path/to/your/client.html
+#   terminal-minceraft --client /path/to/your/client.html
 set -euo pipefail
 
 # EaglercraftX 1.8 (build dated 2024-11-18) with EaglerForge's mod loader
@@ -78,13 +78,13 @@ done
 
 cat >&2 <<EOF
 
-terminal-eaglercraft: could not get the client.
+terminal-minceraft: could not get the client.
 
 The archive it comes from has been taken down before, and may be again. If that
 has happened, find an EaglercraftX 1.8 offline client with singleplayer in it
 and point the game at your own copy:
 
-  terminal-eaglercraft --client /path/to/your/client.html
+  terminal-minceraft --client /path/to/your/client.html
 
 EOF
 exit 1

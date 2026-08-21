@@ -1,7 +1,9 @@
 # The brief, verbatim
 
 This is the exact brief the orchestrator wrote and delegated to the build agent,
-unedited. The four messages that arrived while it was building follow it.
+unedited. It calls the project terminal-eaglercraft, which is what it was called
+until message 6 below renamed it. The nine messages that arrived while it was
+building follow it.
 
 ---
 
@@ -67,6 +69,22 @@ Report at the end: repo URL, recording path, measured fps, exact client file + s
 ## Mid-flight message 5
 
 > If you look at the demo video, there are a few small touches that make it look nice, like the gradient and simulated Mac window. You can probably copy some of those from the Terminal Doom repo.
+
+## Mid-flight message 6
+
+> can we  call it terminal-minceraft play ion words
+
+## Mid-flight message 7
+
+> the recordings good but needs ot be square for twitter not landscape so the two recordings stacked on top of each other
+
+## Mid-flight message 8
+
+> the title says it thats why i did it.
+
+## Mid-flight message 9
+
+> We can remove the "What broke?" from the README. I don't think people actually care about it. I was reading it, it didn't sound as cool as the other stuff we had to figure out.
 
 ## About the orchestration
 

@@ -1,18 +1,26 @@
-# terminal-eaglercraft
+# terminal-minceraft
 
 Minecraft inside your terminal, and inside your friend's terminal, in the same
 world.
 
-![terminal-eaglercraft](media/terminal-eaglercraft.gif)
+![terminal-minceraft](media/terminal-minceraft.gif)
 
 Two terminal panes, two players, one Minecraft world. The full clip, with the
-game's own sound, is [media/terminal-eaglercraft.mp4](media/terminal-eaglercraft.mp4).
+game's own sound, is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4).
 Every frame in both is bytes terminal-browser wrote to a terminal.
+
+### About the name
+
+Minecraft has always had a rare title screen that spells itself Minceraft. Both
+terminals rolled it on the day this was recorded, which is the first shot of the
+clip, and it is where the name came from.
+
+![two terminals, both showing the Minceraft title screen](media/title.png)
 
 ### Install (macOS & Linux):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dcouple/terminal-eaglercraft/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dcouple/terminal-minceraft/main/install.sh | bash
 ```
 
 This repository is the wrapper. The installer downloads the game itself, one
@@ -22,10 +30,10 @@ to an exact commit and checked against a pinned sha256 before it is used.
 ### Usage
 
 ```
-Usage: terminal-eaglercraft [options]
+Usage: terminal-minceraft [options]
 
-  terminal-eaglercraft                 Play in this terminal pane
-  terminal-eaglercraft --split right   Play in a new pane beside what you are doing
+  terminal-minceraft                 Play in this terminal pane
+  terminal-minceraft --split right   Play in a new pane beside what you are doing
 
 Options:
   --client <path>       Use your own EaglercraftX offline client html
@@ -43,15 +51,13 @@ Options:
   -h, --help            Print this help
 ```
 
-![the title screen in a terminal pane](media/title.png)
-
 You need a terminal that speaks the kitty graphics protocol: ghostty, kitty,
 WezTerm, cmux, or the terminal inside VS Code. On macOS, `brew install --cask
 ghostty`.
 
 Fullscreen the terminal before you play. The game renders at whatever size the
 pane is, so a bigger pane is a bigger, sharper Minecraft. The recording above
-was made at 170 by 48 cells, which is 1530 by 912 pixels.
+was made at 170 by 48 cells, which is 1530 by 912 pixels a pane.
 
 The first launch shows a white screen that says "press any key to enable sound".
 Press any key. Chromium keeps audio silent until you touch something, and
@@ -138,9 +144,11 @@ It created a worktree, wrote a one-page brief, and handed it to a Claude Opus 5
 agent. The brief set the ground rules: prove the two things that decide whether
 this is possible at all before building anything, ship the wrapper and download
 the game, and finish with a recording where every frame is real. Everything else
-was the agent's to figure out. Five more messages from me arrived mid-build, and
-one of them changed the deliverable from a singleplayer clip to two terminals in
-one world. All of it is in [BRIEF.md](BRIEF.md), verbatim.
+was the agent's to figure out. Eight more messages from me arrived while it was
+building. One of them turned the deliverable from a singleplayer clip into two
+terminals in one world, and one of them renamed the project after a title screen
+the recording had already caught. All of them are in [BRIEF.md](BRIEF.md),
+verbatim, including the typos.
 
 My favourite part is the same as last time. The machine it works on has screen
 recording switched off, which leaves the agent blind to the terminal it is
@@ -155,52 +163,9 @@ the keys arrived. And it is the camera. It grew a mouse for this project,
 because Minecraft has menus, and a control channel, because a game you have to
 script in advance is a game you debug sixty seconds at a time.
 
-### What broke
-
-The stories are the interesting part.
-
-**The browser asks for pixels and reads cells.** terminal-browser turns on
-`CSI ?1016h`, which is the mouse mode where coordinates are pixels. Mouse events
-sent in pixels arrived nowhere, silently, which is the worst way for anything to
-fail. The fix was to make the page draw what it was being told into its own
-corner and take a screenshot of that: `--debug` still does it. The overlay said
-the page was 765 by 456 CSS pixels, and that nothing had arrived at all. Sending
-the same click in cell coordinates put it on screen. It reads cells.
-
-**Two characters.** The wrapper injects one script tag before `</head>` of the
-client. Finding that tag by lowercasing the html first and searching the copy is
-the obvious way and it is wrong: Minecraft ships translated credits, a few of
-those letters lowercase into two UTF-16 code units, and every index after them
-slides. The tag landed two characters inside the one it was aiming at, and the
-game booted with `head>` printed across the top of the screen.
-
-**The button was the launch.** The client build has EaglerForge's mod manager,
-which covers the game on every launch. Removing the panel, which is exactly what
-its own Done button does, gave a black pane forever. The manager keeps filling
-the panel in after it opens, so writing into a node that is gone throws inside a
-promise and takes the rest of the launch with it. And the launch is not the
-removal: it is a mousedown listener on that button, holding the continuation the
-client handed over on the way in. The wrapper hides the panel and presses it.
-
-**Worlds that never saved.** The server used to pick a free port at random, the
-way a small static server usually should. The port is part of the origin, the
-origin is where the browser keeps localStorage and IndexedDB, and that is where
-Minecraft keeps your settings and your worlds. Every launch was a brand new
-machine that had never heard of you. The port is fixed now, and the game
-remembers.
-
-**Sound with the silence removed.** The recording takes the game's audio from
-inside the page, by tapping every node the game connects to its speakers. The
-first take came out as forty five seconds of Minecraft noises for a four minute
-video, and none of it landed where it should. Eaglercraft lets its audio context
-fall asleep between sounds, and a sleeping context feeds a recorder nothing, so
-what came out was every noise the game made with all the quiet edited out. The
-capture keeps the context awake and runs a silent oscillator into the tap, so
-the silence gets recorded too.
-
 ### How does it work?
 
-terminal-eaglercraft combines [terminal-browser](https://github.com/zenbu-labs/terminal-browser)
+terminal-minceraft combines [terminal-browser](https://github.com/zenbu-labs/terminal-browser)
 (a browser in the terminal) and EaglercraftX 1.8 (Minecraft 1.8.8 compiled to
 JavaScript with TeaVM). A small server on loopback hands the game to the
 browser, injecting one script of ours on the way through, which is the only
@@ -246,14 +211,14 @@ Script it in advance:
 ```bash
 scripts/capture.py --out media --video demo.mp4 --seconds 90 --isolate /tmp/tec \
   --key 6:space --click 42:0.5:0.44 --hold 60:2.5:w --mine 70:1.6:0.5:0.55 \
-  -- bin/terminal-eaglercraft
+  -- bin/terminal-minceraft
 ```
 
 Or play it while it runs, which is what the recording was made with:
 
 ```bash
 scripts/capture.py --out media --seconds 0 --isolate /tmp/tec \
-  --control /tmp/game.ctl -- bin/terminal-eaglercraft
+  --control /tmp/game.ctl -- bin/terminal-minceraft
 echo "key space"            >> /tmp/game.ctl
 echo "click 0.499 0.440"    >> /tmp/game.ctl
 echo "type /time set day"   >> /tmp/game.ctl
