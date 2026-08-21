@@ -6,11 +6,7 @@ world.
 ![terminal-minceraft](media/terminal-minceraft.gif)
 
 Two terminals, two players, one world. The full clip with the game's own sound
-is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4), sped up 2.5x.
-Every frame is bytes terminal-browser wrote to a terminal.
-
-Not a typo: Minecraft has a rare title screen that spells itself MINCERAFT, and
-both terminals rolled it the day this was recorded.
+is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4).
 
 ![two terminals, both showing the Minceraft title screen](media/title.png)
 
