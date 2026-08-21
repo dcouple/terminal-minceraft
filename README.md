@@ -43,6 +43,8 @@ Options:
   -h, --help            Print this help
 ```
 
+![the title screen in a terminal pane](media/title.png)
+
 You need a terminal that speaks the kitty graphics protocol: ghostty, kitty,
 WezTerm, cmux, or the terminal inside VS Code. On macOS, `brew install --cask
 ghostty`.
@@ -83,6 +85,11 @@ they steer the same way a mouse does, with the same acceleration. `--look`
 changes how fast. The mouse works too, since terminal-browser fills in the
 distance between the last two cells it sent, so a drag across the pane turns
 your head.
+
+Blocks break the way you expect. Hold the left button, watch the ground give
+way, keep going and you are in a hole:
+
+![before and after breaking a block](media/mining.png)
 
 Your worlds are saved. They live in the browser profile terminal-browser keeps,
 under the port the game is served on, which is why the port is fixed. Running a
