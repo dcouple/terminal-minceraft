@@ -1,3 +1,13 @@
+What this is, before anything else.
+
+terminal-minceraft exists to demonstrate one thing: that a browser game can be
+rendered into a terminal pane, and played there. That is the whole point of the
+project, and it is the reason the game is here at all.
+
+It is not a way to play Minecraft without paying for it. Minecraft is a
+commercial product and playing it requires a licence from Mojang. Buy the game:
+https://www.minecraft.net
+
 The MIT licence in LICENSE covers the code written for this project. It does
 not cover the whole of what ends up on your machine.
 
@@ -30,8 +40,9 @@ repository. Read this before copying any of it.
 3. Minecraft, a Mojang product
    Minecraft is a trademark of Mojang Synergies AB, part of Microsoft. This
    project is not affiliated with, endorsed by, or sponsored by Mojang or
-   Microsoft, and it is not a way to get Minecraft without paying for it. If
-   you play Minecraft, buy Minecraft.
+   Microsoft, and nothing here is offered as a substitute for owning the game.
+   The client is included for demonstration purposes. Buy your own copy:
+   https://www.minecraft.net
 
 The recordings in media/ are screen recordings of gameplay. They show Minecraft
 because they are recordings of someone playing it. No game files, code or

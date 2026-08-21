@@ -237,12 +237,16 @@ targets macOS and Linux. Installing the Linux version inside
 
 ### Licence
 
+This project exists to demonstrate that a browser game can be rendered into a
+terminal pane and played there. It is not a way to play Minecraft without paying
+for it. Minecraft is a commercial product and playing it requires a licence from
+Mojang, so buy your own copy: https://www.minecraft.net
+
 Three parts, spelled out in [NOTICE](NOTICE). The wrapper in this repository is
 MIT. Eaglercraft is downloaded when you install, is not redistributed here, and
 carries its own terms; it contains decompiled Minecraft code and repositories
 hosting it have been taken down before. Minecraft is a trademark of Mojang
-Synergies AB, part of Microsoft, and this project is independent of them. If you
-play Minecraft, buy Minecraft.
+Synergies AB, part of Microsoft, and this project is independent of them.
 
 ### Thanks
 
