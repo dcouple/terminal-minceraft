@@ -9,6 +9,8 @@ Two terminal panes, two players, one Minecraft world. The full clip, with the
 game's own sound, is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4).
 Every frame in both is bytes terminal-browser wrote to a terminal.
 
+An agent can play it as well. That is [further down](#let-an-agent-play).
+
 ### About the name
 
 Minecraft has always had a rare title screen that spells itself Minceraft. Both
@@ -118,6 +120,79 @@ players is peer to peer, so as the host you are handing your IP address to
 whoever joins. The game says that too.
 
 `--relay wss://your-relay/` points it at a relay of your own.
+
+### Let an agent play
+
+The game runs in a browser, and a browser can be asked questions. With `--agent`
+the wrapper opens a small control layer on the same port, and an agent gets the
+two things a player has: something to see with, and something to act with.
+
+![Claude playing through the MCP server](media/agent-plays.gif)
+
+That clip is Claude Code, given a hotbar and told to build something. It looks,
+places a block, looks again, and walks back to see what it made. The full clip
+is [media/agent-plays.mp4](media/agent-plays.mp4).
+
+Start a game with the interface on:
+
+```bash
+terminal-minceraft --agent
+```
+
+Then point Claude at it, once:
+
+```bash
+claude mcp add minceraft -- terminal-minceraft mcp
+```
+
+That is the whole setup. Ask Claude to look around and it will.
+
+**The tools.** Small and orthogonal, because an agent composes better than it
+remembers: `observe`, `screenshot`, `move`, `look`, `look_at`, `jump`, `mine`,
+`use`, `select_slot`, `chat`, `stop`.
+
+`observe` is the one that matters. It returns the world as JSON rather than as
+pixels: where the player is, which way it is facing, health and hunger, what is
+in the hotbar, the block the crosshair is on and its name, and every nearby
+player and mob with the compass bearing to turn and face it. An agent that can
+read that plays far better than one squinting at a picture, which is why
+`screenshot` is there for the moments when seeing settles it, and not before.
+
+**The same thing from a shell**, for scripted policies and for testing:
+
+```bash
+terminal-minceraft agent observe
+terminal-minceraft agent look --yaw 90 --pitch 0
+terminal-minceraft agent move forward 1.5 --sprint
+terminal-minceraft agent look-at -249 66 260
+terminal-minceraft agent mine 2
+terminal-minceraft agent say "hello"
+```
+
+**The loop.** Observe, act, observe. A read is one round trip on loopback and
+costs a few milliseconds, so an agent can afford to check itself after every
+move, and should: `look_at` a block, `observe` to confirm the crosshair really
+landed on it, then `mine`. Held keys are released when an action ends and by
+`stop`, so an agent cannot walk away with a key stuck down.
+
+**In multiplayer too.** An agent is another client in the world, so this works
+the same in a shared world as it does alone. In the shot below, the agent has
+found the other player, turned to face them, and walked over.
+
+![an agent and a person in the same world](media/agent-multiplayer.png)
+
+**How it is wired.** The page holds a GET open, the server answers it when a
+tool call arrives, and the page posts the result back. Two ordinary requests, no
+socket library, nothing to install. `web/agent.js` reads the game through
+EaglerForge's ModAPI, which hands out live proxies onto the running Java heap,
+and acts by dispatching the keyboard and mouse events the client already
+listens for. The agent presses the same keys you would.
+
+Two things worth knowing. The control layer listens on loopback with no
+authentication, so anything already running on your machine can drive your
+player while `--agent` is on; leave it off when you are not using it. And
+`--agent` asks WebGL to preserve its drawing buffer so a screenshot can be taken
+at any moment, which costs a little speed.
 
 ### How this was made
 

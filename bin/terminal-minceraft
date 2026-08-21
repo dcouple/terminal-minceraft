@@ -28,11 +28,16 @@ Usage: terminal-minceraft [options]
 
   terminal-minceraft                 Play in this terminal pane
   terminal-minceraft --split right   Play in a new pane beside what you are doing
+  terminal-minceraft --agent         Play, and let an agent play too
+  terminal-minceraft mcp             Run the MCP server, for an agent to connect to
+  terminal-minceraft agent <cmd>     Drive a running game from a shell
 
 Options:
   --client <path>       Use your own EaglercraftX offline client html
   --look <pixels>       Look speed for the arrow keys, in pixels of mouse
                         movement per second (default 520)
+  --agent               Let an agent play. Opens the control layer on the same
+                        port, which the MCP server and "agent" subcommand use
   --relay <wss url>     Signal shared worlds through this relay instead of the
                         ones the client ships with
   --debug               Print what the page is told about the mouse and keys
@@ -58,9 +63,27 @@ Controls:
 USAGE
 }
 
+# --- the agent subcommands --------------------------------------------------
+# terminal-minceraft agent <...> and terminal-minceraft mcp both talk to a game
+# that is already running, so they are handled here and never reach the
+# launcher's own options.
+case "${1:-}" in
+  agent|mcp)
+    SUB="$1"; shift
+    RUNTIME_BIN="$(command -v node || true)"
+    if [ -z "$RUNTIME_BIN" ]; then
+      echo "terminal-minceraft: $SUB needs node" >&2
+      exit 1
+    fi
+    [ "$SUB" = "agent" ] && exec "$RUNTIME_BIN" "$ROOT/scripts/agent-cli.mjs" "$@"
+    exec "$RUNTIME_BIN" "$ROOT/scripts/mcp-server.mjs" "$@"
+    ;;
+esac
+
 CLIENT=""
 LOOK=""
 RELAY=""
+AGENT=0
 DEBUG=0
 SPLIT=""
 SIZE=""
@@ -82,6 +105,7 @@ while [ $# -gt 0 ]; do
     --port=*) PORT="${1#*=}"; shift ;;
     --relay) RELAY="${2:?--relay needs a url}"; shift 2 ;;
     --relay=*) RELAY="${1#*=}"; shift ;;
+    --agent) AGENT=1; shift ;;
     --debug) DEBUG=1; shift ;;
     --serve) SERVE_ONLY=1; shift ;;
     --windowed) APP_MODE=0; shift ;;
@@ -161,6 +185,7 @@ URL="http://127.0.0.1:$BOUND/"
 QUERY=""
 [ -n "$LOOK" ] && QUERY="$QUERY&look=$LOOK"
 [ -n "$RELAY" ] && QUERY="$QUERY&relay=$RELAY"
+[ "$AGENT" -eq 1 ] && QUERY="$QUERY&agent=1"
 [ "$DEBUG" -eq 1 ] && QUERY="$QUERY&debug=1"
 # scripts/capture.py sets this. It turns on the page's audio tap, which posts
 # the game's own sound back to the server; a normal run never touches any of it.
