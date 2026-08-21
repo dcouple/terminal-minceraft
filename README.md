@@ -8,8 +8,6 @@ world.
 Two terminals, two players, one world. The full clip with the game's own sound
 is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4).
 
-![two terminals, both showing the Minceraft title screen](media/title.png)
-
 ### Install (macOS & Linux):
 
 ```bash
