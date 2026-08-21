@@ -1,0 +1,19 @@
+services:
+  eaglercraft:
+    build: .
+    ports:
+      - "5200:5200"
+    volumes:
+      - world-data:/srv/eaglercraft/world
+      - world-nether:/srv/eaglercraft/world_nether
+      - world-end:/srv/eaglercraft/world_the_end
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+
+volumes:
+  world-data:
+  world-nether:
+  world-end:

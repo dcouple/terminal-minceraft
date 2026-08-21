@@ -1,0 +1,36 @@
+server_connect_timeout: 5000
+listeners:
+  - host: 0.0.0.0:25577
+    motd: terminal-minceraft
+    max_players: 100
+    tab_size: 60
+    force_default_server: true
+    forced_hosts: {}
+    tab_list: GLOBAL_PING
+    bind_local_address: true
+    ping_passthrough: false
+    priorities:
+      - lobby
+    query_enabled: false
+    query_port: 25577
+    proxy_protocol: false
+timeout: 30000
+connection_throttle: 4000
+connection_throttle_limit: 3
+ip_forward: true
+online_mode: false
+servers:
+  lobby:
+    motd: terminal-minceraft
+    address: localhost:25565
+    restricted: false
+groups: {}
+permissions:
+  default:
+    - bungeecord.command.server
+    - bungeecord.command.list
+  admin:
+    - bungeecord.command.alert
+    - bungeecord.command.end
+    - bungeecord.command.ip
+    - bungeecord.command.reload

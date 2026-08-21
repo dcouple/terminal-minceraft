@@ -1,0 +1,29 @@
+config-version: 12
+settings:
+  bungeecord: true
+  timeout-time: 60
+  restart-on-crash: true
+  moved-wrongly-threshold: 0.0625
+  moved-too-quickly-multiplier: 10.0
+  log-villager-deaths: true
+  log-named-deaths: true
+world-settings:
+  default:
+    entity-activation-range:
+      animals: 32
+      monsters: 32
+      raiders: 48
+      misc: 16
+      water: 16
+      villagers: 32
+      flying-monsters: 32
+    merge-radius:
+      exp: 3.0
+      item: 2.5
+    mob-spawn-range: 6
+    entity-tracking-range:
+      players: 48
+      animals: 48
+      monsters: 48
+      misc: 32
+      other: 64
