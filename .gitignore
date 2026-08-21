@@ -2,3 +2,6 @@
 web/client.html
 media/raw/
 .venv/
+
+# macOS
+.DS_Store

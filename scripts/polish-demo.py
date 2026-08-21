@@ -45,12 +45,22 @@ PILL_H, PILL_R, PILL_PAD, PILL_FONT = 84, 24, 40, 40
 PILL_Y = 631
 
 
-def layout(stack):
-    """Work out where the two windows sit, and how big the canvas has to be."""
+def layout(stack, single=False):
+    """Work out where the windows sit, and how big the canvas has to be."""
     global CANVAS, WIN_W, VIDEO_H, BAR_H, WIN_H, GAP, FIRST, SECOND
     global RADIUS, PILL_H, PILL_R, PILL_PAD, PILL_FONT, PILL_Y
 
-    if stack:
+    if single:
+        # One terminal, so the frame can be an ordinary wide one.
+        CANVAS = (1920, 1080)
+        WIN_W, BAR_H, GAP, RADIUS = 1560, 40, 0, 16
+        VIDEO_H = round(WIN_W / PANE_ASPECT)
+        WIN_H = VIDEO_H + BAR_H
+        FIRST = ((CANVAS[0] - WIN_W) // 2, (CANVAS[1] - WIN_H) // 2)
+        SECOND = FIRST
+        PILL_H, PILL_R, PILL_PAD, PILL_FONT = 84, 24, 40, 40
+        PILL_Y = FIRST[1] + WIN_H - PILL_H // 2
+    elif stack:
         CANVAS = (1080, 1080)
         WIN_W, BAR_H, GAP, RADIUS = 780, 30, 26, 12
         VIDEO_H = round(WIN_W / PANE_ASPECT)
@@ -164,7 +174,8 @@ def shadow(path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--left", required=True)
-    ap.add_argument("--right", required=True)
+    ap.add_argument("--right", help="a second capture, beside or below the first. "
+                                    "Without one, the clip is a single window")
     ap.add_argument("--left-title", default="steve",
                     help="the top window when stacked, the left one when not")
     ap.add_argument("--right-title", default="alex")
@@ -187,7 +198,8 @@ def main():
                     help="times are in the finished clip's clock, after cutting")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
-    layout(args.stack)
+    single = not args.right
+    layout(args.stack, single)
 
     tmp = tempfile.mkdtemp(prefix="polish-")
     paths = {n: os.path.join(tmp, f"{n}.png")
@@ -208,7 +220,7 @@ def main():
 
     inputs = ["-loop", "1", "-i", paths["bg"],
               "-i", args.left,
-              "-i", args.right,
+              "-i", args.right or args.left,
               "-i", paths["barl"], "-i", paths["barr"],
               "-i", paths["mask"], "-loop", "1", "-i", paths["shadow"]]
     next_index = 7
@@ -242,25 +254,32 @@ def main():
         parts.append(f"{joined}concat=n={len(cuts)}:v=1:a=0[{label}]")
         return parts
 
-    graph = [
-        f"[0:v]scale={CANVAS[0]}:{CANVAS[1]}:flags=lanczos,fps={fps},setsar=1[bg]",
-        *cut_stream(1, args.left_offset, "lcut"),
-        *cut_stream(2, args.right_offset, "rcut"),
-        f"[lcut]scale={WIN_W}:{VIDEO_H}:flags=lanczos,fps={fps},setsar=1[lv]",
-        f"[rcut]scale={WIN_W}:{VIDEO_H}:flags=lanczos,fps={fps},setsar=1[rv]",
-        f"[3:v]fps={fps},setsar=1[lbar]",
-        f"[4:v]fps={fps},setsar=1[rbar]",
-        "[lbar][lv]vstack=inputs=2[lwin]",
-        "[rbar][rv]vstack=inputs=2[rwin]",
-        f"[5:v]format=gray,fps={fps},setsar=1,split=2[m1][m2]",
-        "[lwin][m1]alphamerge[lwr]",
-        "[rwin][m2]alphamerge[rwr]",
-        f"[6:v]fps={fps},setsar=1,split=2[sh1][sh2]",
-        f"[bg][sh1]overlay={FIRST[0]}:{FIRST[1] + 14}:shortest=1[bg1]",
-        f"[bg1][sh2]overlay={SECOND[0]}:{SECOND[1] + 14}[bg2]",
-        f"[bg2][lwr]overlay={FIRST[0]}:{FIRST[1]}[stage1]",
-        f"[stage1][rwr]overlay={SECOND[0]}:{SECOND[1]}[stage]",
-    ]
+    graph = [f"[0:v]scale={CANVAS[0]}:{CANVAS[1]}:flags=lanczos,fps={fps},setsar=1[bg]"]
+    graph += cut_stream(1, args.left_offset, "lcut")
+    graph.append(f"[lcut]scale={WIN_W}:{VIDEO_H}:flags=lanczos,fps={fps},setsar=1[lv]")
+    graph.append(f"[3:v]fps={fps},setsar=1[lbar]")
+    graph.append("[lbar][lv]vstack=inputs=2[lwin]")
+
+    windows = 1 if single else 2
+    graph.append(f"[5:v]format=gray,fps={fps},setsar=1,split={windows}" +
+                 "".join(f"[m{n}]" for n in range(1, windows + 1)))
+    graph.append("[lwin][m1]alphamerge[lwr]")
+    graph.append(f"[6:v]fps={fps},setsar=1,split={windows}" +
+                 "".join(f"[sh{n}]" for n in range(1, windows + 1)))
+
+    if single:
+        graph.append(f"[bg][sh1]overlay={FIRST[0]}:{FIRST[1] + 14}:shortest=1[bgs]")
+        graph.append(f"[bgs][lwr]overlay={FIRST[0]}:{FIRST[1]}[stage]")
+    else:
+        graph += cut_stream(2, args.right_offset, "rcut")
+        graph.append(f"[rcut]scale={WIN_W}:{VIDEO_H}:flags=lanczos,fps={fps},setsar=1[rv]")
+        graph.append(f"[4:v]fps={fps},setsar=1[rbar]")
+        graph.append("[rbar][rv]vstack=inputs=2[rwin]")
+        graph.append("[rwin][m2]alphamerge[rwr]")
+        graph.append(f"[bg][sh1]overlay={FIRST[0]}:{FIRST[1] + 14}:shortest=1[bg1]")
+        graph.append(f"[bg1][sh2]overlay={SECOND[0]}:{SECOND[1] + 14}[bg2]")
+        graph.append(f"[bg2][lwr]overlay={FIRST[0]}:{FIRST[1]}[stage1]")
+        graph.append(f"[stage1][rwr]overlay={SECOND[0]}:{SECOND[1]}[stage]")
 
     last = "stage"
     for n, (start, end, width, _) in enumerate(captions):

@@ -28,11 +28,16 @@ Usage: terminal-minceraft [options]
 
   terminal-minceraft                 Play in this terminal pane
   terminal-minceraft --split right   Play in a new pane beside what you are doing
+  terminal-minceraft --agent         Play, and let an agent play too
+  terminal-minceraft mcp             Run the MCP server, for an agent to connect to
+  terminal-minceraft agent <cmd>     Drive a running game from a shell
 
 Options:
   --client <path>       Use your own EaglercraftX offline client html
   --look <pixels>       Look speed for the arrow keys, in pixels of mouse
                         movement per second (default 520)
+  --agent               Let an agent play. Opens the control layer on the same
+                        port, which the MCP server and "agent" subcommand use
   --relay <wss url>     Signal shared worlds through this relay instead of the
                         ones the client ships with
   --debug               Print what the page is told about the mouse and keys
@@ -58,9 +63,45 @@ Controls:
 USAGE
 }
 
+# --- a javascript runtime ---------------------------------------------------
+# Node if the machine has one, otherwise the electron that terminal-browser
+# already vendors, which runs as node when asked to. That keeps the only real
+# dependency terminal-browser itself, and it has to be the same answer for the
+# game server and for the agent subcommands: a machine with no node can still
+# play, so it should still be able to let an agent play.
+RUNTIME=()
+resolve_runtime() {
+  if command -v node >/dev/null 2>&1; then
+    RUNTIME=(node)
+    return 0
+  fi
+  ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser.app/Contents/MacOS/terminal-browser"
+  [ -x "$ELECTRON" ] || ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser"
+  if [ -x "$ELECTRON" ]; then
+    RUNTIME=(env ELECTRON_RUN_AS_NODE=1 "$ELECTRON")
+    return 0
+  fi
+  echo "terminal-minceraft: no javascript runtime found (install node, or terminal-browser)" >&2
+  return 1
+}
+
+# --- the agent subcommands --------------------------------------------------
+# terminal-minceraft agent <...> and terminal-minceraft mcp both talk to a game
+# that is already running, so they are handled here and never reach the
+# launcher's own options.
+case "${1:-}" in
+  agent|mcp)
+    SUB="$1"; shift
+    resolve_runtime || exit 1
+    [ "$SUB" = "agent" ] && exec "${RUNTIME[@]}" "$ROOT/scripts/agent-cli.mjs" "$@"
+    exec "${RUNTIME[@]}" "$ROOT/scripts/mcp-server.mjs" "$@"
+    ;;
+esac
+
 CLIENT=""
 LOOK=""
 RELAY=""
+AGENT=0
 DEBUG=0
 SPLIT=""
 SIZE=""
@@ -82,6 +123,7 @@ while [ $# -gt 0 ]; do
     --port=*) PORT="${1#*=}"; shift ;;
     --relay) RELAY="${2:?--relay needs a url}"; shift 2 ;;
     --relay=*) RELAY="${1#*=}"; shift ;;
+    --agent) AGENT=1; shift ;;
     --debug) DEBUG=1; shift ;;
     --serve) SERVE_ONLY=1; shift ;;
     --windowed) APP_MODE=0; shift ;;
@@ -112,22 +154,7 @@ if [ ! -x "$TB" ] && [ "$SERVE_ONLY" -eq 0 ]; then
   exit 1
 fi
 
-# A javascript runtime for the static server. Node if the machine has one,
-# otherwise the electron terminal-browser already vendors, which runs as node
-# when asked to. That keeps the only real dependency terminal-browser itself.
-RUNTIME=()
-if command -v node >/dev/null 2>&1; then
-  RUNTIME=(node)
-else
-  ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser.app/Contents/MacOS/terminal-browser"
-  [ -x "$ELECTRON" ] || ELECTRON="$HOME/.local/share/terminal-browser/app/electron/terminal-browser"
-  if [ -x "$ELECTRON" ]; then
-    RUNTIME=(env ELECTRON_RUN_AS_NODE=1 "$ELECTRON")
-  else
-    echo "terminal-minceraft: no javascript runtime found (install node, or terminal-browser)" >&2
-    exit 1
-  fi
-fi
+resolve_runtime || exit 1
 
 # --- serve ------------------------------------------------------------------
 SERVER_PID=""
@@ -161,6 +188,7 @@ URL="http://127.0.0.1:$BOUND/"
 QUERY=""
 [ -n "$LOOK" ] && QUERY="$QUERY&look=$LOOK"
 [ -n "$RELAY" ] && QUERY="$QUERY&relay=$RELAY"
+[ "$AGENT" -eq 1 ] && QUERY="$QUERY&agent=1"
 [ "$DEBUG" -eq 1 ] && QUERY="$QUERY&debug=1"
 # scripts/capture.py sets this. It turns on the page's audio tap, which posts
 # the game's own sound back to the server; a normal run never touches any of it.
