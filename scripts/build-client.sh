@@ -211,7 +211,9 @@ else
   fi
 fi
 
-if [ ! -f "$DEST" ]; then
+if [ -f "$DEST.new.html" ]; then
+  mv "$DEST.new.html" "$DEST"
+elif [ ! -f "$DEST" ]; then
   echo "build-client: no client ended up at $DEST" >&2
   exit 1
 fi
