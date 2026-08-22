@@ -4,8 +4,10 @@
 #   curl -fsSL https://raw.githubusercontent.com/dcouple/terminal-minceraft/main/install.sh | bash
 #
 # Pulls the wrapper out of the repo, installs terminal-browser if it is not
-# already here, downloads the EaglercraftX client and checks its sha256, and
-# drops a terminal-minceraft on your PATH.
+# already here, then compiles the EaglercraftX 1.8 client from source: the
+# Minecraft 1.8.8 jar comes down from Mojang's own servers, lax1dude's build
+# tools decompile and patch it, and EaglerForge is injected into the result.
+# The first install takes a while; after that the cache makes it quick.
 set -euo pipefail
 
 REPO="${TERMINAL_MINCERAFT_REPO:-dcouple/terminal-minceraft}"
@@ -18,9 +20,27 @@ case "$(uname -s)" in
   *) echo "terminal-minceraft needs macOS or Linux (the kitty graphics protocol is thin on Windows)" >&2; exit 1 ;;
 esac
 
-for tool in curl tar; do
-  command -v "$tool" >/dev/null 2>&1 || { echo "terminal-minceraft: $tool is required" >&2; exit 1; }
+for tool in curl tar git ffmpeg java node npm; do
+  command -v "$tool" >/dev/null 2>&1 || {
+    echo "terminal-minceraft: $tool is required to build the client" >&2
+    case "$tool" in
+      git)   echo "  https://git-scm.com" ;;
+      ffmpeg) echo "  apt install ffmpeg / brew install ffmpeg" ;;
+      java)  echo "  apt install openjdk-17-jdk / brew install --cask temurin@17 (java 17, not newer)" ;;
+      node|npm) echo "  https://nodejs.org" ;;
+    esac
+    exit 1; }
 done
+
+# The client compile runs on TeaVM, which cannot read the class files that
+# JVMs newer than Java 21 emit.
+JVER="$(java -version 2>&1 | head -n1 | sed 's/.*"\([0-9]*\)\..*/\1/')"
+if [ "${JVER:-0}" -lt 17 ] 2>/dev/null || [ "${JVER:-0}" -gt 21 ] 2>/dev/null; then
+  echo "terminal-minceraft: java 17 is required to build the client (found ${JVER:-none})" >&2
+  echo "  install openjdk-17 and put it first on your PATH, or point" >&2
+  echo "  TERMINAL_MINCERAFT_JAVA at it, then run this again" >&2
+  exit 1
+fi
 
 echo "terminal-minceraft"
 
@@ -46,13 +66,10 @@ curl -fsSL --retry 3 --retry-delay 2 \
 chmod +x "$TMP/bin/terminal-minceraft" "$TMP/scripts/"*.sh "$TMP/scripts/"*.py 2>/dev/null || true
 
 # --- the game ---------------------------------------------------------------
-# The client is 74 MB and is not in the repo, so an upgrade reuses the copy that
-# is already on disk rather than pulling it down again. fetch-client.sh checks
-# the sha256 either way.
-if [ -f "$APP/web/client.html" ]; then
-  cp "$APP/web/client.html" "$TMP/web/client.html" 2>/dev/null || true
-fi
-"$TMP/scripts/fetch-client.sh" --to "$TMP/web/client.html"
+# Not in the repo, not a download either: compiled here from lax1dude's source
+# at a pinned commit, from the official 1.8.8 jar, every time something changed.
+# The cache under ~/.cache keeps an unchanged rebuild to seconds.
+"$TMP/scripts/build-client.sh" --to "$TMP/web/client.html"
 
 # Unpack beside the target and rename over it, so a failed install never leaves
 # half a tree behind.
