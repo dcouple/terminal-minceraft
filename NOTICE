@@ -18,24 +18,31 @@ repository. Read this before copying any of it.
    bin/terminal-minceraft, install.sh, web/serve.mjs, web/look.js, scripts/*
    Written for this project. This is everything in this repository.
 
-2. EaglercraftX 1.8, downloaded when you install, under its own terms
+2. EaglercraftX 1.8, compiled on your machine when you install, under its own terms
    web/client.html
    Eaglercraft is a browser port of Minecraft. It is not in this repository, it
    is not distributed by this project, and no part of it is redistributed here.
-   scripts/fetch-client.sh downloads one file, from a URL pinned to an exact
-   commit, and checks it against a pinned sha256 before using it. That file is
-   an EaglercraftX 1.8 offline client from the Eaglercraft-Archive on GitHub,
-   with EaglerForge's mod loader in it.
+   There is no prebuilt copy to hand out either: scripts/build-client.sh
+   compiles web/client.html at install time, from inputs pinned to exact
+   commits and sha256s:
 
-   That client contains decompiled Minecraft code. It is not ours, it is not
-   MIT, and it is not ours to relicense or to redistribute. Whether you may
-   have a copy of it is between you, its authors, and Mojang. Repositories
-   hosting Eaglercraft have been taken down under the DMCA before, which is why
-   this project downloads rather than ships, and why --client lets you point it
-   at a copy you already have.
+     - lax1dude's eaglercraft-1_8 source tree. It holds the build tools, the
+       browser runtime and patch files, and deliberately contains no Minecraft
+       code: https://gitflic.ru/project/lax1dude/eaglercraft-1_8.git
+     - the official Minecraft 1.8.8 client jar, downloaded from Mojang's own
+       servers at install time
+     - the Mod Coder Pack for 1.8.8, used to decompile that jar:
+       https://github.com/leijurv/MineBot
+     - TeaVM 0.9.2 from Maven Central, which compiles Java to JavaScript
+     - EaglerForgeInjector (MIT), run over the result so --agent works:
+       https://github.com/EaglerForge/EaglerForgeInjector
 
-   The archive: https://github.com/Eaglercraft-Archive
-   EaglerForge:  https://github.com/EaglerForge
+   The client that comes out contains decompiled Minecraft code. It is not
+   ours, it is not MIT, and it is not ours to relicense or to redistribute.
+   Whether you may have a copy of it is between you, its authors, and Mojang.
+   Repositories hosting Eaglercraft have been taken down under the DMCA before,
+   which is why nothing is shipped or mirrored here, and why --client lets you
+   point it at a copy you already have.
 
 3. Minecraft, a Mojang product
    Minecraft is a trademark of Mojang Synergies AB, part of Microsoft. This

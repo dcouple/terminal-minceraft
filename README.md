@@ -14,9 +14,17 @@ is [media/terminal-minceraft.mp4](media/terminal-minceraft.mp4).
 curl -fsSL https://raw.githubusercontent.com/dcouple/terminal-minceraft/main/install.sh | bash
 ```
 
-This repository is the wrapper. The installer downloads the game, one 74 MB
-EaglercraftX 1.8 html file, pinned to an exact commit and checked against a
-pinned sha256.
+This repository is the wrapper. The installer compiles the game itself, on your
+machine, from [lax1dude's EaglercraftX source](https://gitflic.ru/project/lax1dude/eaglercraft-1_8.git)
+at a pinned commit: the official Minecraft 1.8.8 jar comes down from Mojang's
+own servers, the Eaglercraft build tools decompile and patch it, TeaVM compiles
+that to JavaScript, and EaglerForge goes in so `--agent` works.
+
+The compile needs java 17 (a newer JVM breaks the TeaVM compiler), git, ffmpeg
+and node, about six gigabytes of memory, and somewhere between ten and forty
+minutes the first time. After that a cache under `~/.cache` turns every other
+install into seconds. Already have an offline client you prefer?
+`terminal-minceraft --client /path/to/it` skips the whole thing.
 
 ### Usage
 
@@ -149,9 +157,11 @@ screenshot can be taken at any moment, which costs a little speed.
 
 terminal-minceraft combines [terminal-browser](https://github.com/zenbu-labs/terminal-browser)
 (a browser in the terminal) and EaglercraftX 1.8 (Minecraft 1.8.8 compiled to
-JavaScript with TeaVM). A server on loopback hands the game to the browser and
-injects one script of ours on the way through, which is the only place the
-wrapper touches the game.
+JavaScript with TeaVM). The client is not shipped or downloaded prebuilt: the
+installer compiles it from source at a pinned commit, so the game tracks
+lax1dude's current build instead of a file someone uploaded years ago. A server
+on loopback hands the game to the browser and injects one script of ours on the
+way through, which is the only place the wrapper touches the game.
 
 Frames go Minecraft, WebGL, chromium, escape codes, your terminal, about ninety
 times a second. Keys make the same trip back. It works over ssh because the
@@ -256,5 +266,6 @@ Microsoft, and this project is independent of them.
 - [Pane](https://github.com/dcouple/Pane), [dcouple/skills](https://github.com/dcouple/skills) and [dcouple/orchestra](https://github.com/dcouple/orchestra)
 - [terminal-code](https://github.com/zenbu-labs/terminal-code), which showed a web app in a terminal pane can be a real product
 - [terminal-doom](https://github.com/dcouple/terminal-doom), whose capture harness this one grew out of
-- lax1dude and everyone who worked on Eaglercraft, and [EaglerForge](https://github.com/EaglerForge)
+- lax1dude and everyone who worked on Eaglercraft
+- [EaglerForge](https://github.com/EaglerForge), whose [injector](https://github.com/EaglerForge/EaglerForgeInjector) goes into the client at build time
 - Mojang, for Minecraft

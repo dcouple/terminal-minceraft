@@ -139,8 +139,8 @@ done
 [ -n "$CLIENT" ] || CLIENT="${TERMINAL_MINCERAFT_CLIENT:-$WEB/client.html}"
 if [ ! -f "$CLIENT" ]; then
   echo "terminal-minceraft: no eaglercraft client at $CLIENT" >&2
-  echo "  the client is downloaded at install time, not shipped in this repo" >&2
-  echo "  run: $ROOT/scripts/fetch-client.sh" >&2
+  echo "  the client is compiled from source by the installer, not shipped in this repo" >&2
+  echo "  run: $ROOT/scripts/build-client.sh" >&2
   echo "  or:  terminal-minceraft --client /path/to/your/offline_client.html" >&2
   exit 1
 fi
